@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using System.IO;
+using System.Text.RegularExpressions;
 
 using Autodesk.DesignScript.Runtime;
 using Autodesk.DesignScript.Interfaces;
@@ -16,21 +17,76 @@ namespace SVGImport
     {
         private SVG() { }
 
-        public static List<Autodesk.DesignScript.Geometry.Geometry> ImportFile(string filePath)
+        [MultiReturn(new[] { "msg", "geometry" })]
+        public static Dictionary<string, object> ImportFile(string filePath)
         {
+            // Start
+            List<string> log = new List<string>();
             string svg = File.ReadAllText(filePath);
+
+            // Figure out if there is any height parameter in the file
+            string matchPat = @"Z-Height: ([0-9]*.[0-9]*)";
+            Regex r = new Regex(matchPat);
+            Match m = r.Match(svg);
+            double height = 0;
+            bool translate = false;
+            Vector dir = Vector.ByCoordinates(0, 0, 0);
+            if (m.Success)
+            {
+                Group g = m.Groups[1];
+                //log.Add("Match group " + g);
+                CaptureCollection cc = g.Captures;
+                for (var i = 0; i < cc.Count; i++)
+                {
+                    Capture c = cc[i];
+                    //log.Add("Capture " + c);
+                    try
+                    {
+                        height = double.Parse(c.ToString());
+                        log.Add("Found layer at height " + height);
+                    }
+                    catch (Exception e)
+                    {
+                        log.Add(e.ToString());
+                    }
+                }
+            }
+
+            if (height != 0)
+            {
+                translate = true;
+                dir = Vector.ByCoordinates(0, 0, height);
+                //log.Add("Will perform translation");
+            }
+
+
 
             NanoSvg.SvgParser.SvgPath plist = NanoSvg.SvgParser.SvgParse(svg);
 
-            List<Autodesk.DesignScript.Geometry.Geometry> polys = new List<Geometry>();
+            List<Geometry> geo = new List<Geometry>();
 
             for (NanoSvg.SvgParser.SvgPath it = plist; it != null; it = it.next)
             {
                 if (it.npts < 3)
                 {
-                    polys.Add(Line.ByStartPointEndPoint(
-                        Point.ByCoordinates(it.pts[0], it.pts[1], 0),
-                        Point.ByCoordinates(it.pts[2], it.pts[3], 0)));
+                    // this
+                    //Point start = Point.ByCoordinates(it.pts[0], it.pts[1], 0);
+                    //Point end = Point.ByCoordinates(it.pts[2], it.pts[3], 0);
+                    //polys.Add(Line.ByStartPointEndPoint(start, end));
+                    //start.Dispose();
+                    //end.Dispose();
+
+                    // or this
+                    using (Point start = Point.ByCoordinates(it.pts[0], it.pts[1], 0))
+                    {
+                        using (Point end = Point.ByCoordinates(it.pts[2], it.pts[3], 0))
+                        {
+                            Line l = Line.ByStartPointEndPoint(start, end);
+                            if (translate) l = (Line) l.Translate(dir);
+                            geo.Add(l);
+                        }
+                    }
+
                 }
                 else
                 {
@@ -39,21 +95,39 @@ namespace SVGImport
                     {
                         pts.Add(Point.ByCoordinates(it.pts[2 * i], it.pts[2 * i + 1], 0));
                     }
-                    polys.Add(Polygon.ByPoints(pts));
+
+                    Polygon poly = Polygon.ByPoints(pts);
+                    if (translate) poly = (Polygon) poly.Translate(dir);
+                    geo.Add(poly);
+
+                    // Disposal
+                    foreach(Point p in pts)
+                    {
+                        p.Dispose();
+                    }
                 }
             }
 
-            return polys;
+
+            dir.Dispose();
+
+            //return polys;
+            return new Dictionary<string, object>
+            {
+                { "msg", log },
+                { "geometry", geo }
+            };
         }
 
 
 
 
-        internal static List<Autodesk.DesignScript.Geometry.Geometry> ParseXMLDoc(XmlDocument doc)
-        {
 
-            return null;
-        }
+        //internal static List<Autodesk.DesignScript.Geometry.Geometry> ParseXMLDoc(XmlDocument doc)
+        //{
+
+        //    return null;
+        //}
     }
 }
 
@@ -974,6 +1048,7 @@ namespace NanoSvg
             public bool hasFill;
             public bool hasStroke;
             public bool closed;
+            public float height;  // let's try to parse the 'Z-height' property
             public SvgPath next;
         };
 
