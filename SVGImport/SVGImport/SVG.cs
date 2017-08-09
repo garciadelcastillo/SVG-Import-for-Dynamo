@@ -45,8 +45,18 @@ namespace SVGImport
 
             return polys;
         }
+
+
+
+
+        internal static List<Autodesk.DesignScript.Geometry.Geometry> ParseXMLDoc(XmlDocument doc)
+        {
+
+            return null;
+        }
     }
 }
+
 
 /// <summary>
 /// 
@@ -78,7 +88,7 @@ namespace SVGImport
         // Load
         string svgData = ...;
         SvgPath plist = SvgParser.SvgParse(svgData);
-        
+
         // Use...
         for (SvgPath it = plist; it != null; it = it.next)
             ...
@@ -87,19 +97,6 @@ namespace NanoSvg
 {
     internal class SvgParser
     {
-        public class SvgPath
-        {
-            public string id;
-            public float[] pts;
-            public int npts;
-            public uint fillColor;
-            public uint strokeColor;
-            public float strokeWidth;
-            public bool hasFill;
-            public bool hasStroke;
-            public bool closed;
-            public SvgPath next;
-        };
 
         #region Added for C# port
         #region Fixed arrays
@@ -212,6 +209,7 @@ namespace NanoSvg
             }
         }
         #endregion
+
         #region Transform struct
         struct Xf
         {
@@ -268,6 +266,7 @@ namespace NanoSvg
             }
         }
         #endregion
+
         #region A C-style mutable string implementation
         struct CString
         {
@@ -574,6 +573,7 @@ namespace NanoSvg
             }
         }
         #endregion
+
         #region Color names (static constructor)
         static System.Collections.Generic.Dictionary<string, string> _colorNames = new System.Collections.Generic.Dictionary<string, string>();
 
@@ -722,6 +722,7 @@ namespace NanoSvg
             _colorNames.Add("yellowgreen", "9ACD32");
         }
         #endregion
+
         #region Standard library stuff
         // This is a fake sscanf, just to parse colors
         static void sscanf(CString s, ref uint i)
@@ -830,10 +831,11 @@ namespace NanoSvg
         #endregion
         #endregion
 
+
+
         const float M_PI = 3.14159265358979323846264338327f;
 
         // Simple XML parser
-
         const int TAG = 1;
         const int CONTENT = 2;
         const int MAX_ATTRIBS = 256;
@@ -961,7 +963,19 @@ namespace NanoSvg
 
         /* Simple SVG parser. */
 
-        const int SVG_MAX_ATTR = 128;
+        public class SvgPath
+        {
+            public string id;
+            public float[] pts;
+            public int npts;
+            public uint fillColor;
+            public uint strokeColor;
+            public float strokeWidth;
+            public bool hasFill;
+            public bool hasStroke;
+            public bool closed;
+            public SvgPath next;
+        };
 
         class SvgAttrib
         {
@@ -976,6 +990,8 @@ namespace NanoSvg
             public bool hasStroke;
             public bool visible;
         }
+
+        const int SVG_MAX_ATTR = 512;
 
         SvgAttrib[] attr = new SvgAttrib[SVG_MAX_ATTR];
         int attrHead;
@@ -1082,6 +1098,7 @@ namespace NanoSvg
                 p.attrHead--;
         }
 
+        // JL transform next attribute into an SvgPath object and link it to the list
         static void SvgCreatePath(SvgParser p, bool closed)
         {
             Xf t;
