@@ -1,0 +1,23 @@
+{
+    "license": "",
+    "file_hash": null,
+    "name": "SVG Import",
+    "version": "0.1.0",
+    "description": "Import SVG files as geometry into Dynamo",
+    "group": "",
+    "keywords": [
+        "svg",
+        "import"
+    ],
+    "dependencies": [],
+    "contents": "",
+    "engine_version": "1.3.0.875",
+    "engine": "dynamo",
+    "engine_metadata": "",
+    "site_url": "",
+    "repository_url": "",
+    "contains_binaries": true,
+    "node_libraries": [
+        "SVGImport, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null"
+    ]
+}

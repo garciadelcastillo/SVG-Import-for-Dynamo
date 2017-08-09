@@ -17,6 +17,13 @@ namespace SVGImport
     {
         private SVG() { }
 
+        /// <summary>
+        /// Given a list of filepaths for SVG files, generate path geometry based on its contents.
+        /// If a "Z-Height" property is found, the layer will be translated to this height.
+        /// Currently working only for Lines and Polygons.
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <returns></returns>
         [MultiReturn(new[] { "msg", "geometry" })]
         public static Dictionary<string, object> ImportFile(string filePath)
         {
@@ -111,7 +118,6 @@ namespace SVGImport
 
             dir.Dispose();
 
-            //return polys;
             return new Dictionary<string, object>
             {
                 { "msg", log },
@@ -119,15 +125,6 @@ namespace SVGImport
             };
         }
 
-
-
-
-
-        //internal static List<Autodesk.DesignScript.Geometry.Geometry> ParseXMLDoc(XmlDocument doc)
-        //{
-
-        //    return null;
-        //}
     }
 }
 
