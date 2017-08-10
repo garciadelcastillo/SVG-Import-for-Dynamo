@@ -142,35 +142,60 @@ namespace SVGImport
             // Start
             List<string> log = new List<string>();
             List<Geometry> geo = new List<Geometry>();
+            float height = 0;
 
-            XmlDocument xmldoc = new XmlDocument();
-            xmldoc.Load(filePath);
-            XmlNodeList nodes = xmldoc.GetElementsByTagName("path");
-
+            // Files with a <!DOCTYPE ...> get parsed with a super expensive validation; ignore it.
+            XmlReaderSettings settings = new XmlReaderSettings();
+            settings.ValidationType = ValidationType.None;
+            settings.XmlResolver = null;
+            settings.DtdProcessing = DtdProcessing.Ignore;
 
             // https://stackoverflow.com/a/2441694
-            using (XmlReader reader = XmlNodeReader.Create(filePath))
+            XmlReader reader = XmlNodeReader.Create(filePath, settings);
+            //reader.MoveToContent();  // moves to the next element node
+            while (reader.Read())
             {
-                //reader.MoveToContent();
-                while (reader.Read())
+                if (reader.NodeType == XmlNodeType.Element)
                 {
-                    if (reader.NodeType == XmlNodeType.Element)
+                    log.Add("Reading \"" + reader.Name + "\" element");
+                    switch (reader.Name)
                     {
-                        log.Add("Reading \"" + reader.Name + "\" element");
-                        if (reader.Name == "line")
-                        {
+                        case "rect":
+                            log.Add("Found a rectangle");
+                            geo.Add(ParseRectFromXMLNode(reader));
+                            break;
+
+                        case "circle":
+                            log.Add("Found a circle");
+                            geo.Add(ParseCircleFromXMLNode(reader));
+                            break;
+
+                        case "line":
                             log.Add("Found a line");
                             geo.Add(ParseLineFromXMLNode(reader));
-                        }
-                        else if (reader.Name == "polygon")
-                        {
+                            break;
+
+                        case "polygon":
                             log.Add("Found a polygon");
                             geo.Add(ParsePolygonFromXMLNode(reader, log));
-                        }
+                            break;
+
+                        default:
+                            log.Add("Found an unknown element: " + reader.Value);
+                            break;
                     }
+                }
+
+                // Scan for the "Z-Height" property in Netfabb-exported svg slices...  
+                else if (reader.NodeType == XmlNodeType.Comment)
+                {
+                    log.Add("Found comment");
+                    log.Add(reader.ToString());
+                    log.Add(reader.Value);
                 }
             }
 
+            reader.Dispose();
 
 
 
@@ -181,14 +206,52 @@ namespace SVGImport
             };
         }
 
+        /// <summary>
+        /// https://developer.mozilla.org/en-US/docs/Web/SVG/Element/rect
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        internal static Rectangle ParseRectFromXMLNode(XmlReader node)
+        {
+            double x, y, width, height, rx, ry;
+            x = double.Parse(node.GetAttribute("x"));
+            y = double.Parse(node.GetAttribute("y"));
+            width = double.Parse(node.GetAttribute("width"));
+            height = double.Parse(node.GetAttribute("height"));
+
+            // TODO: account for corner radii            
+            Rectangle rect = Rectangle.ByWidthLength(width, height);
+            using (Vector dir = Vector.ByCoordinates(x + 0.5 * width, y + 0.5 * height, 0))
+            {
+                rect = (Rectangle)rect.Translate(dir);
+            }
+
+            return rect;
+        }
+
+        internal static Circle ParseCircleFromXMLNode(XmlReader node)
+        {
+            double cx, cy, r;
+            cx = double.Parse(node.GetAttribute("cx"));
+            cy = double.Parse(node.GetAttribute("cy"));
+            r = double.Parse(node.GetAttribute("r"));
+
+            Circle circ;
+            using (Point center = Point.ByCoordinates(cx, cy, 0))
+            {
+                circ = Circle.ByCenterPointRadius(center, r);
+            }
+
+            return circ;
+        }
 
         internal static Line ParseLineFromXMLNode(XmlReader node)
         {
-            float x1, y1, x2, y2;
-            x1 = float.Parse(node.GetAttribute("x1"));
-            y1 = float.Parse(node.GetAttribute("y1"));
-            x2 = float.Parse(node.GetAttribute("x2"));
-            y2 = float.Parse(node.GetAttribute("y2"));
+            double x1, y1, x2, y2;
+            x1 = double.Parse(node.GetAttribute("x1"));
+            y1 = double.Parse(node.GetAttribute("y1"));
+            x2 = double.Parse(node.GetAttribute("x2"));
+            y2 = double.Parse(node.GetAttribute("y2"));
 
             Line line;
             using (Point start = Point.ByCoordinates(x1, y1, 0))
@@ -216,11 +279,11 @@ namespace SVGImport
             }
 
             List<Point> pts = new List<Point>();
-            float x, y;
+            double x, y;
             for (var i = 0; i < ptsCoords.Length; i += 2)
             {
-                x = float.Parse(ptsCoords[i]);
-                y = float.Parse(ptsCoords[i + 1]);
+                x = double.Parse(ptsCoords[i]);
+                y = double.Parse(ptsCoords[i + 1]);
                 pts.Add(Point.ByCoordinates(x, y, 0));
             }
 
@@ -255,7 +318,7 @@ namespace SVGImport
         public bool hasFill;
         public bool hasStroke;
         public bool visible;
-        
+
 
     }
 }
