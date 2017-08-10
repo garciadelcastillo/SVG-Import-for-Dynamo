@@ -18,7 +18,23 @@ namespace SVGImport
 {
     public class SVG
     {
+
+        /**
+         * TODO LIST:
+         *      - Incorporate attributes
+         *      - Account for rounded corners in recteangles
+         *      - Account for numeric values having units (yeah, have seen it happen...)
+         *      - Account for transforms: translate, scale, matrix
+         *      - Account for vertex types on paths
+         *      
+         *      
+         */
+
+
         private SVG() { }
+
+        static Regex numRegex = new Regex(@"([+-]?[0-9]+\.?[0-9]*)");               // https://regex101.com/r/8wgPzz/1
+        static Regex heightRegex = new Regex(@"Z-Height: ([-+]?[0-9]+\.?[0-9]*)");  // https://regex101.com/r/5ldC8c/1/
 
         /// <summary>
         /// Given a list of filepaths for SVG files, generate path geometry based on its contents.
@@ -35,9 +51,9 @@ namespace SVGImport
             string svg = File.ReadAllText(filePath);
 
             // Figure out if there is any height parameter in the file
-            string matchPat = @"Z-Height: ([0-9]*.[0-9]*)";
-            Regex r = new Regex(matchPat);
-            Match m = r.Match(svg);
+            //string matchPat = @"Z-Height: (-?[0-9]*.[0-9]*)";
+            //Regex r = new Regex(matchPat);
+            Match m = heightRegex.Match(svg);
             double height = 0;
             bool translate = false;
             Vector dir = Vector.ByCoordinates(0, 0, 0);
@@ -170,6 +186,11 @@ namespace SVGImport
                             geo.Add(ParseCircleFromXMLNode(reader));
                             break;
 
+                        case "ellipse":
+                            log.Add("Found an ellipse");
+                            geo.Add(ParseEllipseFromXMLNode(reader));
+                            break;
+
                         case "line":
                             log.Add("Found a line");
                             geo.Add(ParseLineFromXMLNode(reader));
@@ -245,6 +266,24 @@ namespace SVGImport
             return circ;
         }
 
+        internal static Ellipse ParseEllipseFromXMLNode(XmlReader node)
+        {
+            double cx, cy, rx, ry;
+            cx = double.Parse(node.GetAttribute("cx"));
+            cy = double.Parse(node.GetAttribute("cy"));
+            rx = double.Parse(node.GetAttribute("rx"));
+            ry = double.Parse(node.GetAttribute("ry"));
+
+            Ellipse ellipse;
+            using (Point center = Point.ByCoordinates(cx, cy, 0))
+            using (CoordinateSystem centerCS = CoordinateSystem.ByOriginVectors(center, Vector.XAxis(), Vector.YAxis()))
+            {
+                ellipse = Ellipse.ByCoordinateSystemRadii(centerCS, rx, ry);
+            }
+
+            return ellipse;
+        }
+
         internal static Line ParseLineFromXMLNode(XmlReader node)
         {
             double x1, y1, x2, y2;
@@ -254,40 +293,71 @@ namespace SVGImport
             y2 = double.Parse(node.GetAttribute("y2"));
 
             Line line;
-            using (Point start = Point.ByCoordinates(x1, y1, 0))
+            using (Point start = Point.ByCoordinates(x1, y1, 0),
+                         end = Point.ByCoordinates(x2, y2, 0))
             {
-                using (Point end = Point.ByCoordinates(x2, y2, 0))
-                {
-                    line = Line.ByStartPointEndPoint(start, end);
-                }
+                line = Line.ByStartPointEndPoint(start, end);
+
             }
 
             return line;
         }
 
+
+        //Match m = heightRegex.Match(svg);
+        //double height = 0;
+        //bool translate = false;
+        //Vector dir = Vector.ByCoordinates(0, 0, 0);
+        //    if (m.Success)
+        //    {
+        //        Group g = m.Groups[1];
+        ////log.Add("Match group " + g);
+        //CaptureCollection cc = g.Captures;
+        //        for (var i = 0; i<cc.Count; i++)
+        //        {
+        //            Capture c = cc[i];
+        //            //log.Add("Capture " + c);
+        //            try
+        //            {
+        //                height = double.Parse(c.ToString());
+        //                log.Add("Found layer at height " + height);
+        //            }
+        //            catch (Exception e)
+        //            {
+        //                log.Add(e.ToString());
+        //            }
+        //        }
+        //    }
+
         internal static Polygon ParsePolygonFromXMLNode(XmlReader node, List<string> log)
         {
             string ptsStr = node.GetAttribute("points");
-            string[] ptsCoords = ptsStr.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries);
-
-            log.Add("Parsing polyline with poinCount " + ptsCoords.Length);
-
-            int it = 0;
-            foreach (string s in ptsCoords)
+            //string[] ptsCoords = ptsStr.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries);
+            
+            MatchCollection matches = numRegex.Matches(ptsStr);
+            double[] nums = new double[matches.Count];
+            var it = 0;
+            foreach (Match m in matches)
             {
-                log.Add(it++ + " " + s);
+                nums[it++] = double.Parse(m.Groups[0].Value);
             }
 
-            List<Point> pts = new List<Point>();
-            double x, y;
-            for (var i = 0; i < ptsCoords.Length; i += 2)
+
+            log.Add("Parsing polyline with poinCount " + nums.Length);
+            it = 0;
+            foreach (double d in nums)
             {
-                x = double.Parse(ptsCoords[i]);
-                y = double.Parse(ptsCoords[i + 1]);
-                pts.Add(Point.ByCoordinates(x, y, 0));
+                log.Add(it++ + " " + d);
+            }
+
+            Point[] pts = new Point[nums.Length / 2];
+            for (var i = 0; i < pts.Length; i++)
+            {
+                pts[i] = Point.ByCoordinates(nums[2 * i], nums[2 * i + 1], 0);
             }
 
             Polygon poly = Polygon.ByPoints(pts);
+            if (!poly.IsClosed) poly = (Polygon)poly.CloseWithLine();
 
             // Disposal
             foreach (Point p in pts)
