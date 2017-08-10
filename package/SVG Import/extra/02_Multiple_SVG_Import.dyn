@@ -1,10 +1,10 @@
-<Workspace Version="1.3.0.875" X="-42.3631325159372" Y="189.089901842503" zoom="0.794352463051345" ScaleFactor="1" Name="Home" Description="" RunType="Automatic" RunPeriod="1000" HasRunWithoutCrash="True">
+<Workspace Version="1.3.0.875" X="-33.7192919099977" Y="147.038829600516" zoom="0.7618854791156" ScaleFactor="1" Name="Home" Description="" RunType="Automatic" RunPeriod="1000" HasRunWithoutCrash="True">
   <NamespaceResolutionMap />
   <Elements>
     <Dynamo.Graph.Nodes.ZeroTouch.DSFunction guid="edae2256-ac79-45d8-9a0e-2eee5e0d8ee7" type="Dynamo.Graph.Nodes.ZeroTouch.DSFunction" nickname="SVG.ImportFile" x="985.550897763613" y="-113.207945699553" isVisible="true" isUpstreamVisible="true" lacing="Shortest" isSelectedInput="False" IsFrozen="false" isPinned="false" assembly="..\bin\SVGImport.dll" function="SVGImport.SVG.ImportFile@string">
       <PortInfo index="0" default="False" />
     </Dynamo.Graph.Nodes.ZeroTouch.DSFunction>
-    <CoreNodeModels.Watch guid="e7a29ad9-eba8-4d82-ae82-8c3e966c7598" type="CoreNodeModels.Watch" nickname="Watch" x="1361.87632371243" y="-69.7465307991957" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" isPinned="false">
+    <CoreNodeModels.Watch guid="e7a29ad9-eba8-4d82-ae82-8c3e966c7598" type="CoreNodeModels.Watch" nickname="Watch" x="1349.92571141854" y="-110.030915236148" isVisible="true" isUpstreamVisible="true" lacing="Disabled" isSelectedInput="False" IsFrozen="false" isPinned="false">
       <PortInfo index="0" default="False" />
     </CoreNodeModels.Watch>
     <Dynamo.Graph.Nodes.ZeroTouch.DSFunction guid="56a5bcc2-d05c-46a1-98b9-edd5aaee65a0" type="Dynamo.Graph.Nodes.ZeroTouch.DSFunction" nickname="Directory.Contents" x="652.143558415094" y="-114.413638616734" isVisible="true" isUpstreamVisible="true" lacing="Shortest" isSelectedInput="False" IsFrozen="false" isPinned="false" assembly="DSCoreNodes.dll" function="DSCore.IO.Directory.Contents@var,string">
@@ -31,6 +31,6 @@
   <Annotations />
   <Presets />
   <Cameras>
-    <Camera Name="Background Preview" eyeX="118.269895584439" eyeY="74.8869024317981" eyeZ="107.141847755984" lookX="-118.49683123049" lookY="-59.2554423970252" lookZ="-113.195972336482" upX="-0.0943828639359734" upY="0.991444872245261" upZ="-0.0901607333799667" />
+    <Camera Name="Background Preview" eyeX="75.5259567827197" eyeY="36.9883636857571" eyeZ="42.4438736610735" lookX="-74.5215556256015" lookY="-18.7039577963024" lookZ="-55.5251454541229" upX="0.013994867494777" upY="0.999847717488079" upZ="0.0104274019025997" />
   </Cameras>
 </Workspace>

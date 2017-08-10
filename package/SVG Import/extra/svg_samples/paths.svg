@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.0//EN" 
+              "http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd">
+<svg xmlns="http://www.w3.org/2000/svg">
+	
+    <!-- pencil holder -->
+    <path fill="none" stroke="#AF3A46" stroke-width="4.9763" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" d="
+	M169,188.8L169,188.8c43.9-21.5,94.3-16.6,119.8-1.1L277,321.9c0,0-39.9,23.2-95.2-1.1L169,188.8z"/>
+
+	<!-- little house thingy -->
+	<path fill="none" stroke="#AF3A46" stroke-width="4.8228" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" d="
+	M255.7,270.4l-2.2-32.6l-24.4-18.9L205,236.6c0.3,11.8,1.4,22.8,1.7,34.6C206.6,271.2,236,275.9,255.7,270.4z"/>
+
+</svg>
