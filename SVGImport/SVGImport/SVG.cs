@@ -25,8 +25,8 @@ namespace SVGImport
          *      - Account for rounded corners in recteangles
          *      - Account for numeric values having units (yeah, have seen it happen...)
          *      - Account for transforms: translate, scale, matrix
-         *      - Account for vertex types on paths
-         *      
+         *      - Account for Groups (and their transforms)
+         *      - Improve "path" importing to account for different types of geometry
          *      
          */
 
@@ -35,11 +35,119 @@ namespace SVGImport
 
         static Regex numRegex = new Regex(@"([+-]?[0-9]+\.?[0-9]*)");               // https://regex101.com/r/8wgPzz/1
         static Regex heightRegex = new Regex(@"Z-Height: ([-+]?[0-9]+\.?[0-9]*)");  // https://regex101.com/r/5ldC8c/1/
+        static double height = 0;  // a height marker for layer import operations
+
+
+        ///// <summary>
+        ///// Given a list of filepaths for SVG files, generate path geometry based on its contents.
+        ///// If a "Z-Height" property is found, the layer will be translated to this height.
+        ///// Currently working only for Lines and Polygons.
+        ///// </summary>
+        ///// <param name="filePath"></param>
+        ///// <returns></returns>
+        //[MultiReturn(new[] { "msg", "geometry" })]
+        //public static Dictionary<string, object> ImportFile(string filePath)
+        //{
+        //    // Start
+        //    List<string> log = new List<string>();
+        //    string svg = File.ReadAllText(filePath);
+
+        //    // Figure out if there is any height parameter in the file
+        //    Match m = heightRegex.Match(svg);
+        //    double height = 0;
+        //    bool translate = false;
+        //    Vector dir = Vector.ByCoordinates(0, 0, 0);
+        //    if (m.Success)
+        //    {
+        //        Group g = m.Groups[1];
+        //        //log.Add("Match group " + g);
+        //        CaptureCollection cc = g.Captures;
+        //        for (var i = 0; i < cc.Count; i++)
+        //        {
+        //            Capture c = cc[i];
+        //            //log.Add("Capture " + c);
+        //            try
+        //            {
+        //                height = double.Parse(c.ToString());
+        //                log.Add("Found layer at height " + height);
+        //            }
+        //            catch (Exception e)
+        //            {
+        //                log.Add(e.ToString());
+        //            }
+        //        }
+        //    }
+
+        //    if (height != 0)
+        //    {
+        //        translate = true;
+        //        dir = Vector.ByCoordinates(0, 0, height);
+        //        //log.Add("Will perform translation");
+        //    }
+
+
+
+        //    NanoSvg.SvgParser.SvgPath plist = NanoSvg.SvgParser.SvgParse(svg);
+
+        //    List<Geometry> geo = new List<Geometry>();
+
+        //    for (NanoSvg.SvgParser.SvgPath it = plist; it != null; it = it.next)
+        //    {
+        //        if (it.npts < 3)
+        //        {
+        //            // this
+        //            //Point start = Point.ByCoordinates(it.pts[0], it.pts[1], 0);
+        //            //Point end = Point.ByCoordinates(it.pts[2], it.pts[3], 0);
+        //            //polys.Add(Line.ByStartPointEndPoint(start, end));
+        //            //start.Dispose();
+        //            //end.Dispose();
+
+        //            // or this
+        //            using (Point start = Point.ByCoordinates(it.pts[0], it.pts[1], 0))
+        //            {
+        //                using (Point end = Point.ByCoordinates(it.pts[2], it.pts[3], 0))
+        //                {
+        //                    Line l = Line.ByStartPointEndPoint(start, end);
+        //                    if (translate) l = (Line)l.Translate(dir);
+        //                    geo.Add(l);
+        //                }
+        //            }
+
+        //        }
+        //        else
+        //        {
+        //            List<Point> pts = new List<Point>();
+        //            for (var i = 0; i < it.npts; i++)
+        //            {
+        //                pts.Add(Point.ByCoordinates(it.pts[2 * i], it.pts[2 * i + 1], 0));
+        //            }
+
+        //            Polygon poly = Polygon.ByPoints(pts);
+        //            if (translate) poly = (Polygon)poly.Translate(dir);
+        //            geo.Add(poly);
+
+        //            // Disposal
+        //            foreach (Point p in pts)
+        //            {
+        //                p.Dispose();
+        //            }
+        //        }
+        //    }
+
+
+        //    dir.Dispose();
+
+        //    return new Dictionary<string, object>
+        //    {
+        //        { "msg", log },
+        //        { "geometry", geo }
+        //    };
+        //}
+
 
         /// <summary>
         /// Given a list of filepaths for SVG files, generate path geometry based on its contents.
         /// If a "Z-Height" property is found, the layer will be translated to this height.
-        /// Currently working only for Lines and Polygons.
         /// </summary>
         /// <param name="filePath"></param>
         /// <returns></returns>
@@ -48,117 +156,7 @@ namespace SVGImport
         {
             // Start
             List<string> log = new List<string>();
-            string svg = File.ReadAllText(filePath);
-
-            // Figure out if there is any height parameter in the file
-            //string matchPat = @"Z-Height: (-?[0-9]*.[0-9]*)";
-            //Regex r = new Regex(matchPat);
-            Match m = heightRegex.Match(svg);
-            double height = 0;
-            bool translate = false;
-            Vector dir = Vector.ByCoordinates(0, 0, 0);
-            if (m.Success)
-            {
-                Group g = m.Groups[1];
-                //log.Add("Match group " + g);
-                CaptureCollection cc = g.Captures;
-                for (var i = 0; i < cc.Count; i++)
-                {
-                    Capture c = cc[i];
-                    //log.Add("Capture " + c);
-                    try
-                    {
-                        height = double.Parse(c.ToString());
-                        log.Add("Found layer at height " + height);
-                    }
-                    catch (Exception e)
-                    {
-                        log.Add(e.ToString());
-                    }
-                }
-            }
-
-            if (height != 0)
-            {
-                translate = true;
-                dir = Vector.ByCoordinates(0, 0, height);
-                //log.Add("Will perform translation");
-            }
-
-
-
-            NanoSvg.SvgParser.SvgPath plist = NanoSvg.SvgParser.SvgParse(svg);
-
             List<Geometry> geo = new List<Geometry>();
-
-            for (NanoSvg.SvgParser.SvgPath it = plist; it != null; it = it.next)
-            {
-                if (it.npts < 3)
-                {
-                    // this
-                    //Point start = Point.ByCoordinates(it.pts[0], it.pts[1], 0);
-                    //Point end = Point.ByCoordinates(it.pts[2], it.pts[3], 0);
-                    //polys.Add(Line.ByStartPointEndPoint(start, end));
-                    //start.Dispose();
-                    //end.Dispose();
-
-                    // or this
-                    using (Point start = Point.ByCoordinates(it.pts[0], it.pts[1], 0))
-                    {
-                        using (Point end = Point.ByCoordinates(it.pts[2], it.pts[3], 0))
-                        {
-                            Line l = Line.ByStartPointEndPoint(start, end);
-                            if (translate) l = (Line)l.Translate(dir);
-                            geo.Add(l);
-                        }
-                    }
-
-                }
-                else
-                {
-                    List<Point> pts = new List<Point>();
-                    for (var i = 0; i < it.npts; i++)
-                    {
-                        pts.Add(Point.ByCoordinates(it.pts[2 * i], it.pts[2 * i + 1], 0));
-                    }
-
-                    Polygon poly = Polygon.ByPoints(pts);
-                    if (translate) poly = (Polygon)poly.Translate(dir);
-                    geo.Add(poly);
-
-                    // Disposal
-                    foreach (Point p in pts)
-                    {
-                        p.Dispose();
-                    }
-                }
-            }
-
-
-            dir.Dispose();
-
-            return new Dictionary<string, object>
-            {
-                { "msg", log },
-                { "geometry", geo }
-            };
-        }
-
-
-        /// <summary>
-        /// Given a list of filepaths for SVG files, generate path geometry based on its contents.
-        /// If a "Z-Height" property is found, the layer will be translated to this height.
-        /// Currently working only for Lines and Polygons.
-        /// </summary>
-        /// <param name="filePath"></param>
-        /// <returns></returns>
-        [MultiReturn(new[] { "msg", "geometry" })]
-        public static Dictionary<string, object> ImportFileAlt(string filePath)
-        {
-            // Start
-            List<string> log = new List<string>();
-            List<Geometry> geo = new List<Geometry>();
-            float height = 0;
 
             // Files with a <!DOCTYPE ...> get parsed with a super expensive validation; ignore it.
             XmlReaderSettings settings = new XmlReaderSettings();
@@ -173,36 +171,53 @@ namespace SVGImport
             {
                 if (reader.NodeType == XmlNodeType.Element)
                 {
-                    log.Add("Reading \"" + reader.Name + "\" element");
+                    //log.Add("Reading \"" + reader.Name + "\" element");
                     switch (reader.Name)
                     {
                         case "rect":
-                            log.Add("Found a rectangle");
-                            geo.Add(ParseRectFromXMLNode(reader));
+                            //log.Add("Found a rectangle");
+                            Rectangle r = ParseRectFromXMLNode(reader);
+                            geo.Add(r);
                             break;
 
                         case "circle":
-                            log.Add("Found a circle");
-                            geo.Add(ParseCircleFromXMLNode(reader));
+                            //log.Add("Found a circle");
+                            Circle c = ParseCircleFromXMLNode(reader);
+                            geo.Add(c);
                             break;
 
                         case "ellipse":
-                            log.Add("Found an ellipse");
-                            geo.Add(ParseEllipseFromXMLNode(reader));
+                            //log.Add("Found an ellipse");
+                            Ellipse e = ParseEllipseFromXMLNode(reader);
+                            geo.Add(e);
                             break;
 
                         case "line":
-                            log.Add("Found a line");
-                            geo.Add(ParseLineFromXMLNode(reader));
+                            //log.Add("Found a line");
+                            Line l = ParseLineFromXMLNode(reader);
+                            geo.Add(l);
                             break;
 
                         case "polygon":
-                            log.Add("Found a polygon");
-                            geo.Add(ParsePolygonFromXMLNode(reader, log));
+                            //log.Add("Found a polygon");
+                            PolyCurve polygon = ParsePolygonFromXMLNode(reader, log, true);
+                            geo.Add(polygon);
+                            break;
+
+                        case "polyline":
+                            //log.Add("Found a polygon");
+                            PolyCurve polycurve = (PolyCurve)ParsePolygonFromXMLNode(reader, log, false);
+                            geo.Add(polycurve);
+                            break;
+
+                        case "path":
+                            //log.Add("Found a path");
+                            List<Geometry> path = ParsePathFromXMLNode(reader, log);
+                            geo.AddRange(path);
                             break;
 
                         default:
-                            log.Add("Found an unknown element: " + reader.Value);
+                            log.Add("Cannot parse element: " + reader.Name + " " + reader.Value);
                             break;
                     }
                 }
@@ -210,15 +225,32 @@ namespace SVGImport
                 // Scan for the "Z-Height" property in Netfabb-exported svg slices...  
                 else if (reader.NodeType == XmlNodeType.Comment)
                 {
-                    log.Add("Found comment");
-                    log.Add(reader.ToString());
-                    log.Add(reader.Value);
+                    //log.Add("Found comment");
+                    //log.Add(reader.ToString());
+                    //log.Add(reader.Value);
+
+                    // Figure out if there is any height parameter in the file
+                    Match m = heightRegex.Match(reader.Value);
+                    if (m.Success)
+                    {
+                        try
+                        {
+                            height = double.Parse(m.Groups[1].Value);
+                            log.Add("Found layer at height: " + height);
+                        }
+                        catch (Exception e)
+                        {
+                            log.Add("Error on layer height parsing: " + m.Groups[1].Value);
+                            log.Add(e.ToString());
+                        }
+                    }
                 }
             }
 
+
+            // Final dispositions
             reader.Dispose();
-
-
+            height = 0;  // reset static class prop for next graph tick
 
             return new Dictionary<string, object>
             {
@@ -227,22 +259,20 @@ namespace SVGImport
             };
         }
 
-        /// <summary>
-        /// https://developer.mozilla.org/en-US/docs/Web/SVG/Element/rect
-        /// </summary>
-        /// <param name="node"></param>
-        /// <returns></returns>
+
+
+
         internal static Rectangle ParseRectFromXMLNode(XmlReader node)
         {
-            double x, y, width, height, rx, ry;
+            double x, y, width, length, rx, ry;
             x = double.Parse(node.GetAttribute("x"));
             y = double.Parse(node.GetAttribute("y"));
             width = double.Parse(node.GetAttribute("width"));
-            height = double.Parse(node.GetAttribute("height"));
+            length = double.Parse(node.GetAttribute("height"));
 
             // TODO: account for corner radii            
-            Rectangle rect = Rectangle.ByWidthLength(width, height);
-            using (Vector dir = Vector.ByCoordinates(x + 0.5 * width, y + 0.5 * height, 0))
+            Rectangle rect = Rectangle.ByWidthLength(width, length);
+            using (Vector dir = Vector.ByCoordinates(x + 0.5 * width, y + 0.5 * length, height))
             {
                 rect = (Rectangle)rect.Translate(dir);
             }
@@ -258,7 +288,7 @@ namespace SVGImport
             r = double.Parse(node.GetAttribute("r"));
 
             Circle circ;
-            using (Point center = Point.ByCoordinates(cx, cy, 0))
+            using (Point center = Point.ByCoordinates(cx, cy, height))
             {
                 circ = Circle.ByCenterPointRadius(center, r);
             }
@@ -275,7 +305,7 @@ namespace SVGImport
             ry = double.Parse(node.GetAttribute("ry"));
 
             Ellipse ellipse;
-            using (Point center = Point.ByCoordinates(cx, cy, 0))
+            using (Point center = Point.ByCoordinates(cx, cy, height))
             using (CoordinateSystem centerCS = CoordinateSystem.ByOriginVectors(center, Vector.XAxis(), Vector.YAxis()))
             {
                 ellipse = Ellipse.ByCoordinateSystemRadii(centerCS, rx, ry);
@@ -293,8 +323,8 @@ namespace SVGImport
             y2 = double.Parse(node.GetAttribute("y2"));
 
             Line line;
-            using (Point start = Point.ByCoordinates(x1, y1, 0),
-                         end = Point.ByCoordinates(x2, y2, 0))
+            using (Point start = Point.ByCoordinates(x1, y1, height),
+                         end = Point.ByCoordinates(x2, y2, height))
             {
                 line = Line.ByStartPointEndPoint(start, end);
 
@@ -303,37 +333,11 @@ namespace SVGImport
             return line;
         }
 
-
-        //Match m = heightRegex.Match(svg);
-        //double height = 0;
-        //bool translate = false;
-        //Vector dir = Vector.ByCoordinates(0, 0, 0);
-        //    if (m.Success)
-        //    {
-        //        Group g = m.Groups[1];
-        ////log.Add("Match group " + g);
-        //CaptureCollection cc = g.Captures;
-        //        for (var i = 0; i<cc.Count; i++)
-        //        {
-        //            Capture c = cc[i];
-        //            //log.Add("Capture " + c);
-        //            try
-        //            {
-        //                height = double.Parse(c.ToString());
-        //                log.Add("Found layer at height " + height);
-        //            }
-        //            catch (Exception e)
-        //            {
-        //                log.Add(e.ToString());
-        //            }
-        //        }
-        //    }
-
-        internal static Polygon ParsePolygonFromXMLNode(XmlReader node, List<string> log)
+        internal static Polygon ParsePolygonFromXMLNode(XmlReader node, List<string> log, bool close)
         {
             string ptsStr = node.GetAttribute("points");
             //string[] ptsCoords = ptsStr.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries);
-            
+
             MatchCollection matches = numRegex.Matches(ptsStr);
             double[] nums = new double[matches.Count];
             var it = 0;
@@ -342,22 +346,21 @@ namespace SVGImport
                 nums[it++] = double.Parse(m.Groups[0].Value);
             }
 
-
-            log.Add("Parsing polyline with poinCount " + nums.Length);
-            it = 0;
-            foreach (double d in nums)
-            {
-                log.Add(it++ + " " + d);
-            }
+            //log.Add("Parsing polyline with poinCount " + nums.Length);
+            //it = 0;
+            //foreach (double d in nums)
+            //{
+            //    log.Add(it++ + " " + d);
+            //}
 
             Point[] pts = new Point[nums.Length / 2];
             for (var i = 0; i < pts.Length; i++)
             {
-                pts[i] = Point.ByCoordinates(nums[2 * i], nums[2 * i + 1], 0);
+                pts[i] = Point.ByCoordinates(nums[2 * i], nums[2 * i + 1], height);
             }
 
-            Polygon poly = Polygon.ByPoints(pts);
-            if (!poly.IsClosed) poly = (Polygon)poly.CloseWithLine();
+            Polygon poly = Polygon.ByPoints(pts);  // stupid PolyCurve cannot deal with overlapping points...
+            //if (close && !poly.IsClosed) poly = poly.CloseWithLine();
 
             // Disposal
             foreach (Point p in pts)
@@ -367,8 +370,52 @@ namespace SVGImport
 
             return poly;
         }
+
+        // Quick and dirty path import using the nano-svg lib
+        internal static List<Geometry> ParsePathFromXMLNode(XmlReader node, List<string> log)
+        {
+            string xml = node.ReadOuterXml();
+            NanoSvg.SvgParser.SvgPath plist = NanoSvg.SvgParser.SvgParse(xml);
+
+            List<Geometry> pathGeo = new List<Geometry>();
+
+            for (NanoSvg.SvgParser.SvgPath it = plist; it != null; it = it.next)
+            {
+                if (it.npts < 3)
+                {
+                    using (Point start = Point.ByCoordinates(it.pts[0], it.pts[1], height))
+                    using (Point end = Point.ByCoordinates(it.pts[2], it.pts[3], height))
+                    {
+                        Line l = Line.ByStartPointEndPoint(start, end);
+                        pathGeo.Add(l);
+                    }
+                }
+                else
+                {
+                    List<Point> pts = new List<Point>();
+                    for (var i = 0; i < it.npts; i++)
+                    {
+                        pts.Add(Point.ByCoordinates(it.pts[2 * i], it.pts[2 * i + 1], height));
+                    }
+
+                    Polygon poly = Polygon.ByPoints(pts);  // PolyCurve has a hard time with coincident points... XD
+                    //if (it.closed && !poly.IsClosed) poly = poly.CloseWithLine();  
+                    pathGeo.Add(poly);
+
+                    // Disposal
+                    foreach (Point p in pts)
+                    {
+                        p.Dispose();
+                    }
+                }
+            }
+
+            return pathGeo;
+        }
     }
 
+
+    // TODEV...
     internal class SVGElement
     {
         Geometry geometry;
@@ -392,6 +439,12 @@ namespace SVGImport
 
     }
 }
+
+
+
+
+
+
 
 
 /// <summary>
