@@ -10,6 +10,9 @@ using System.Text.RegularExpressions;
 using Autodesk.DesignScript.Runtime;
 using Autodesk.DesignScript.Interfaces;
 using Autodesk.DesignScript.Geometry;
+using Dynamo;
+using Autodesk;
+using DSCore;
 
 namespace SVGImport
 {
@@ -89,7 +92,7 @@ namespace SVGImport
                         using (Point end = Point.ByCoordinates(it.pts[2], it.pts[3], 0))
                         {
                             Line l = Line.ByStartPointEndPoint(start, end);
-                            if (translate) l = (Line) l.Translate(dir);
+                            if (translate) l = (Line)l.Translate(dir);
                             geo.Add(l);
                         }
                     }
@@ -104,11 +107,11 @@ namespace SVGImport
                     }
 
                     Polygon poly = Polygon.ByPoints(pts);
-                    if (translate) poly = (Polygon) poly.Translate(dir);
+                    if (translate) poly = (Polygon)poly.Translate(dir);
                     geo.Add(poly);
 
                     // Disposal
-                    foreach(Point p in pts)
+                    foreach (Point p in pts)
                     {
                         p.Dispose();
                     }
@@ -124,6 +127,135 @@ namespace SVGImport
                 { "geometry", geo }
             };
         }
+
+
+        /// <summary>
+        /// Given a list of filepaths for SVG files, generate path geometry based on its contents.
+        /// If a "Z-Height" property is found, the layer will be translated to this height.
+        /// Currently working only for Lines and Polygons.
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <returns></returns>
+        [MultiReturn(new[] { "msg", "geometry" })]
+        public static Dictionary<string, object> ImportFileAlt(string filePath)
+        {
+            // Start
+            List<string> log = new List<string>();
+            List<Geometry> geo = new List<Geometry>();
+
+            XmlDocument xmldoc = new XmlDocument();
+            xmldoc.Load(filePath);
+            XmlNodeList nodes = xmldoc.GetElementsByTagName("path");
+
+
+            // https://stackoverflow.com/a/2441694
+            using (XmlReader reader = XmlNodeReader.Create(filePath))
+            {
+                //reader.MoveToContent();
+                while (reader.Read())
+                {
+                    if (reader.NodeType == XmlNodeType.Element)
+                    {
+                        log.Add("Reading \"" + reader.Name + "\" element");
+                        if (reader.Name == "line")
+                        {
+                            log.Add("Found a line");
+                            geo.Add(ParseLineFromXMLNode(reader));
+                        }
+                        else if (reader.Name == "polygon")
+                        {
+                            log.Add("Found a polygon");
+                            geo.Add(ParsePolygonFromXMLNode(reader, log));
+                        }
+                    }
+                }
+            }
+
+
+
+
+            return new Dictionary<string, object>
+            {
+                { "msg", log },
+                { "geometry", geo }
+            };
+        }
+
+
+        internal static Line ParseLineFromXMLNode(XmlReader node)
+        {
+            float x1, y1, x2, y2;
+            x1 = float.Parse(node.GetAttribute("x1"));
+            y1 = float.Parse(node.GetAttribute("y1"));
+            x2 = float.Parse(node.GetAttribute("x2"));
+            y2 = float.Parse(node.GetAttribute("y2"));
+
+            Line line;
+            using (Point start = Point.ByCoordinates(x1, y1, 0))
+            {
+                using (Point end = Point.ByCoordinates(x2, y2, 0))
+                {
+                    line = Line.ByStartPointEndPoint(start, end);
+                }
+            }
+
+            return line;
+        }
+
+        internal static Polygon ParsePolygonFromXMLNode(XmlReader node, List<string> log)
+        {
+            string ptsStr = node.GetAttribute("points");
+            string[] ptsCoords = ptsStr.Split(new string[] { " " }, StringSplitOptions.RemoveEmptyEntries);
+
+            log.Add("Parsing polyline with poinCount " + ptsCoords.Length);
+
+            int it = 0;
+            foreach (string s in ptsCoords)
+            {
+                log.Add(it++ + " " + s);
+            }
+
+            List<Point> pts = new List<Point>();
+            float x, y;
+            for (var i = 0; i < ptsCoords.Length; i += 2)
+            {
+                x = float.Parse(ptsCoords[i]);
+                y = float.Parse(ptsCoords[i + 1]);
+                pts.Add(Point.ByCoordinates(x, y, 0));
+            }
+
+            Polygon poly = Polygon.ByPoints(pts);
+
+            // Disposal
+            foreach (Point p in pts)
+            {
+                p.Dispose();
+            }
+
+            return poly;
+        }
+    }
+
+    internal class SVGElement
+    {
+        Geometry geometry;
+        SVGAttributes attribs;
+
+    }
+
+    internal class SVGAttributes
+    {
+        public string id;
+        //public Xf xform;  // transform
+        public uint fillColor;
+        public uint strokeColor;
+        public float fillOpacity;
+        public float strokeOpacity;
+        public float strokeWidth;
+        public bool hasFill;
+        public bool hasStroke;
+        public bool visible;
+        
 
     }
 }
