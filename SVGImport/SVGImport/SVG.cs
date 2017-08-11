@@ -35,8 +35,8 @@ namespace SVGImport
 
         static Regex numRegex = new Regex(@"([+-]?[0-9]+\.?[0-9]*)");               // https://regex101.com/r/8wgPzz/1
         static Regex heightRegex = new Regex(@"Z-Height: ([-+]?[0-9]+\.?[0-9]*)");  // https://regex101.com/r/5ldC8c/1/
-        static double height = 0;  // a height marker for layer import operations
-
+        static double height = 0;                                                   // a height marker for layer import operations
+        static double EPSILON = 0.001;                                              // precision for comparison operations
 
         ///// <summary>
         ///// Given a list of filepaths for SVG files, generate path geometry based on its contents.
@@ -200,14 +200,14 @@ namespace SVGImport
 
                         case "polygon":
                             //log.Add("Found a polygon");
-                            PolyCurve polygon = ParsePolygonFromXMLNode(reader, log, true);
+                            Polygon polygon = ParsePolygonFromXMLNode(reader, log, true);
                             geo.Add(polygon);
                             break;
 
                         case "polyline":
                             //log.Add("Found a polygon");
-                            PolyCurve polycurve = (PolyCurve)ParsePolygonFromXMLNode(reader, log, false);
-                            geo.Add(polycurve);
+                            Polygon polygon2 = ParsePolygonFromXMLNode(reader, log, false);
+                            geo.Add(polygon2);
                             break;
 
                         case "path":
@@ -359,7 +359,30 @@ namespace SVGImport
                 pts[i] = Point.ByCoordinates(nums[2 * i], nums[2 * i + 1], height);
             }
 
-            Polygon poly = Polygon.ByPoints(pts);  // stupid PolyCurve cannot deal with overlapping points...
+            Polygon poly;
+            try
+            {
+                poly = Polygon.ByPoints(pts);
+            }
+            catch (Exception e)
+            {
+                // If there are many duplicate points, PolyCurve throws errors. 
+                // Try cleaning up instead
+                log.Add(e.ToString());
+                log.Add("SVG Import: Polygon has too many duplicate points, cleaning up...");
+                
+                List<Point> cleanPts = RemoveConsecutiveDuplicatePoints(pts);
+                poly = Polygon.ByPoints(cleanPts);
+
+                log.Add("Removed " + (pts.Length - cleanPts.Count) + " duplicate points from polygon");
+
+                // Cleanup
+                foreach (Point p in cleanPts)
+                {
+                    p.Dispose();
+                }
+            }
+
             //if (close && !poly.IsClosed) poly = poly.CloseWithLine();
 
             // Disposal
@@ -411,6 +434,35 @@ namespace SVGImport
             }
 
             return pathGeo;
+        }
+
+        /// <summary>
+        /// Goes over a list of Points, and removes points that are consecutively duplicate O(n)
+        /// </summary>
+        /// <param name="pts"></param>
+        /// <returns></returns>
+        internal static List<Point> RemoveConsecutiveDuplicatePoints(Point[] pts)
+        {
+            List<Point> clean = new List<Point>();
+            if (pts.Length == 0) return clean;
+
+            clean.Add(pts[0]);
+            for (var i = 1; i < pts.Length; i++)
+            {
+                if (SqDistance(pts[i - 1], pts[i]) > EPSILON) {
+                    clean.Add(pts[i]);
+                }
+            }
+
+            return clean;
+        }
+
+        internal static double SqDistance(Point p1, Point p2)
+        {
+            double dx = p2.X - p1.X,
+                   dy = p2.Y - p1.Y,
+                   dz = p2.Z - p1.Z;
+            return dx * dx + dy * dy + dz * dz;
         }
     }
 
