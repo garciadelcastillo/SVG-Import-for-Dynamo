@@ -11,7 +11,7 @@ In Dynamo Studio, download the Package by going to `Packages > Search for a Pack
 The package file contains examples on how to use the package. Go to `Packages > Manage Packages`, click on the options on the right of `SVG Import` and click `Show root folder`. You will find example files in the `extra` folder.
 
 ## Limitations
-As of version 0.2.0, the library only imports lines and polygons as paths, with no attributes. Currently optimized for importing slice SVGs from Netfabb for 3D printing.
+As of version 0.3.1, the library imports objects as natively as possible, with no attributes. Paths are polygonized. Currently optimized for importing slice SVGs from Netfabb for 3D printing.
 
 ## Acknowledgements
-Based on the [nanosvg-csharp project by Thinksquirrel](https://github.com/thinksquirrel/nanosvg-csharp).
+Partially using the [nanosvg-csharp project by Thinksquirrel](https://github.com/thinksquirrel/nanosvg-csharp).
