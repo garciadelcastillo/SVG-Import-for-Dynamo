@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>SVGImport</name>
+    </assembly>
+    <members>
+        <member name="M:SVGImport.SVG.#ctor">
+            TODO LIST:
+                 - Incorporate attributes
+                 - Account for rounded corners in recteangles
+                 - Account for numeric values having units (yeah, have seen it happen...)
+                 - Account for transforms: translate, scale, matrix
+                 - Account for Groups (and their transforms)
+                 - Improve "path" importing to account for different types of geometry
+                 
+        </member>
+        <member name="M:SVGImport.SVG.ImportFile(System.String)">
+            <summary>
+            Given a list of filepaths for SVG files, generate path geometry based on its contents.
+            If a "Z-Height" property is found, the layer will be translated to this height.
+            </summary>
+            <param name="filePath"></param>
+            <returns></returns>
+        </member>
+        <member name="M:SVGImport.SVG.RemoveConsecutiveDuplicatePoints(Autodesk.DesignScript.Geometry.Point[])">
+            <summary>
+            Goes over a list of Points, and removes points that are consecutively duplicate O(n)
+            </summary>
+            <param name="pts"></param>
+            <returns></returns>
+        </member>
+    </members>
+</doc>
