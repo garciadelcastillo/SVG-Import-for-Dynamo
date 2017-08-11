@@ -16,5 +16,5 @@ As of version 0.3.1, the library imports objects as natively as possible, with n
 ## Acknowledgements
 Partially using the [nanosvg-csharp project by Thinksquirrel](https://github.com/thinksquirrel/nanosvg-csharp).
 
-## More screenshots
+## Screenshots
 ![](https://github.com/garciadelcastillo/SVG-Import-for-Dynamo/blob/master/assets/svg_import_dynamo_screenshot_2.png)
